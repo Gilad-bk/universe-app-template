@@ -11,7 +11,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   // Next.js memoizes identical fetch calls within the same render pass.
   const appData = await getAppData(host);
 
-  const page = appData?.pages.find((p) => p.slug === slug);
+  const decodedSlug = decodeURIComponent(slug);
+  const page = appData?.pages.find((p) => p.slug === decodedSlug);
 
   if (!page) {
     notFound();

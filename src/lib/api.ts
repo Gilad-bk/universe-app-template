@@ -4,7 +4,8 @@ import type { App } from "@/lib/types";
 export async function getAppData(host: string): Promise<App | null> {
 
   // gets the api url
-  const apiUrl = process.env.UNIVERSE_API_URL ?? "";
+  const apiUrl = process.env.UNIVERSE_API_URL;
+  if (!apiUrl) return null;
 
   // gets the target host or the default host
   const targetHost = process.env.NEXT_PUBLIC_DEV_HOST || host;
