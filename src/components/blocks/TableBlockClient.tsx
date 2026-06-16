@@ -67,7 +67,7 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
       const fetchRelation = async () => {
         try {
           const res = await fetch(`${baseApiUrl}/api/tables/${refTableId}?limit=1000`, {
-            headers: { 'x-org-id': orgId }
+            headers: { 'x-org-id': orgId, 'ngrok-skip-browser-warning': '69420' }
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const json = await res.json();
@@ -228,6 +228,7 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
     setIsSaving(true);
     try {
       const performFetch = async (url: string, options: any) => {
+        options.headers = { ...options.headers, 'ngrok-skip-browser-warning': '69420' };
         const res = await fetch(url, options);
         if (!res.ok) {
           let errMsg = `Error ${res.status}`;
@@ -282,7 +283,7 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
       
       // We must fetch the latest data to get real IDs for added records
       const freshRes = await fetch(`${baseApiUrl}/api/tables/${tableMetaId}?limit=100`, {
-        headers: { 'x-org-id': orgId },
+        headers: { 'x-org-id': orgId, 'ngrok-skip-browser-warning': '69420' },
         cache: 'no-store'
       });
       if(freshRes.ok) {
