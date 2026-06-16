@@ -10,9 +10,9 @@ export async function getAppData(host: string): Promise<App | null> {
   // gets the target host or the default host
   const targetHost = process.env.NEXT_PUBLIC_DEV_HOST || host;
 
-  // makes the api request with the target host
+  // makes the api request with the target host- changed to 0 to prevent caching
   const res = await fetch(`${apiUrl}/api/app?host=${targetHost}`, {
-    next: { revalidate: 60 },
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) return null;
