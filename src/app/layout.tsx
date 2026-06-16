@@ -5,6 +5,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { getAppData } from "@/lib/api";
 import type { App } from "@/lib/types";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -85,6 +86,7 @@ export default async function RootLayout({
             {children}
           </main>
         </div>
+        <Toaster />
       </body>
     </html>
   );
