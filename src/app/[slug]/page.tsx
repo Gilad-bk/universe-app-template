@@ -30,6 +30,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
                 key={component.id} 
                 tableMetaId={component.config.tableMetaId} 
                 orgId={appData?.organizationId || ''}
+                orgIdentifier={appData?.organization?.orgIdentifier || ''}
               />
             );
           }

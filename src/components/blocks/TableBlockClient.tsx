@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { DrivePickerCell } from "@/components/blocks/DrivePickerCell";
 
 export interface ColumnDef {
   name: string;
@@ -29,12 +30,13 @@ export interface RecordData {
 interface TableBlockClientProps {
   tableMetaId: string;
   orgId: string;
+  orgIdentifier: string;
   schema: SchemaDef;
   initialRecords: RecordData[];
   apiUrl: string;
 }
 
-export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, apiUrl }: TableBlockClientProps) {
+export function TableBlockClient({ tableMetaId, orgId, orgIdentifier, schema, initialRecords, apiUrl }: TableBlockClientProps) {
   const router = useRouter();
 
   const [data, setData] = useState<RecordData[]>(initialRecords);
@@ -46,6 +48,8 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
     modified: Record<string, Record<string, any>>;
     deleted: string[];
   }>({ added: [], modified: {}, deleted: [] });
+
+  const [pendingDeletions, setPendingDeletions] = useState<string[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [relationOptions, setRelationOptions] = useState<Record<string, any[]>>({});
@@ -107,7 +111,7 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
     setDirty((prev) => ({ ...prev, added: [newRow, ...prev.added] }));
   };
 
-  const handleCellChange = (rowId: string, colName: string, value: string | boolean) => {
+  const handleCellChange = (rowId: string, colName: string, value: string | boolean | Record<string, any> | null) => {
     setData((prev) => prev.map(row => 
       row.id === rowId ? { ...row, data: { ...row.data, [colName]: value } } : row
     ));
@@ -155,6 +159,28 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
     
     if(!confirm("האם למחוק את הרשומות שנבחרו?")) return;
 
+    const filesToDelete: string[] = [];
+    const driveCols = schema.columns?.filter((c: ColumnDef) => c.type?.toUpperCase() === 'GOOGLE_DRIVE_FILE') || [];
+    
+    // delete the drive files from the server and drive folder
+    if (driveCols.length > 0) {
+      idsToDelete.forEach(id => {
+        const row = data.find(r => r.id === id);
+        if (row) {
+          driveCols.forEach(col => {
+            const fileObj = row.data[col.name];
+            if (fileObj && fileObj.fileId) {
+              filesToDelete.push(fileObj.fileId);
+            }
+          });
+        }
+      });
+    }
+
+    if (filesToDelete.length > 0) {
+      setPendingDeletions(prev => [...prev, ...filesToDelete]);
+    }
+
     setData(prev => prev.filter(row => !idsToDelete.includes(row.id)));
 
     setDirty(prev => {
@@ -182,12 +208,16 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
       if (['_id', 'id', 'createdAt', 'updatedAt', 'orgId', 'tableId', 'isSelected'].includes(col.name)) return;
       
       let val = payload[col.name];
-      if (val !== undefined && val !== null) {
-        if (col.type?.toUpperCase() === 'NUMBER') {
-          val = val === "" ? 0 : Number(val);
-          if (isNaN(val)) val = 0;
+      if (val !== undefined) {
+        if (val === null) {
+          formatted[col.name] = null;
+        } else {
+          if (col.type?.toUpperCase() === 'NUMBER') {
+            val = val === "" ? 0 : Number(val);
+            if (isNaN(val)) val = 0;
+          }
+          formatted[col.name] = val;
         }
-        formatted[col.name] = val;
       }
     });
     return formatted;
@@ -280,6 +310,18 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
       }
 
       toast.success("השינויים נשמרו בהצלחה");
+
+      // Process delayed deletions
+      if (pendingDeletions.length > 0) {
+        for (const fileId of pendingDeletions) {
+          try {
+            await fetch(`${baseApiUrl}/api/drive/delete-file?fileId=${fileId}`, { method: 'DELETE' });
+          } catch (e) {
+            console.error("Failed to delete file from drive:", fileId);
+          }
+        }
+        setPendingDeletions([]);
+      }
       
       // We must fetch the latest data to get real IDs for added records
       const freshRes = await fetch(`${baseApiUrl}/api/tables/${tableMetaId}?limit=100`, {
@@ -425,6 +467,14 @@ export function TableBlockClient({ tableMetaId, orgId, schema, initialRecords, a
                             onCheckedChange={(c) => handleCellChange(row.id, col.name, !!c)}
                           />
                         </div>
+                      ) : col.type?.toUpperCase() === 'GOOGLE_DRIVE_FILE' ? (
+                        <DrivePickerCell
+                          value={row.data[col.name] || null}
+                          onChange={(fileVal) => handleCellChange(row.id, col.name, fileVal as any)}
+                          orgId={orgIdentifier}
+                          tableName={schema.name || "Unknown_Table"}
+                          onMarkForDeletion={(fileId) => setPendingDeletions(prev => [...prev, fileId])}
+                        />
                       ) : col.type?.toUpperCase() === 'RELATION' ? (
                         <select
                           className="w-full h-8 px-2 bg-transparent focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm"
