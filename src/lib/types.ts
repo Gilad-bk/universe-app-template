@@ -12,6 +12,7 @@ export interface Page {
 
 export interface Organization {
   name: string;
+  orgIdentifier: string;
 }
 
 export interface App {

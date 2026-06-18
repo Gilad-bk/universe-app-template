@@ -4,9 +4,10 @@ import { TableBlockClient } from './TableBlockClient';
 interface TableBlockProps {
   tableMetaId: string;
   orgId: string;
+  orgIdentifier: string;
 }
 
-export async function TableBlock({ tableMetaId, orgId }: TableBlockProps) {
+export async function TableBlock({ tableMetaId, orgId, orgIdentifier }: TableBlockProps) {
   try {
     // Fetch table schema and records
     const res = await fetch(`${process.env.UNIVERSE_API_URL}/api/tables/${tableMetaId}`, {
@@ -26,6 +27,7 @@ export async function TableBlock({ tableMetaId, orgId }: TableBlockProps) {
       <TableBlockClient 
         tableMetaId={tableMetaId} 
         orgId={orgId} 
+        orgIdentifier={orgIdentifier}
         schema={schema} 
         initialRecords={records.data} 
         apiUrl={process.env.UNIVERSE_API_URL || ""}
