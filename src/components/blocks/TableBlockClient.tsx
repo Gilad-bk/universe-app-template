@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { DrivePickerCell } from "@/components/blocks/DrivePickerCell";
+import { FORM_INPUTS } from "./field-registry";
 
 export interface ColumnDef {
   name: string;
@@ -15,6 +16,7 @@ export interface ColumnDef {
   isUnique?: boolean;
   referencedTableId?: string;
   displayField?: string;
+  currencySymbol?: string;
 }
 
 export interface SchemaDef {
@@ -39,7 +41,26 @@ interface TableBlockClientProps {
 export function TableBlockClient({ tableMetaId, orgId, orgIdentifier, schema, initialRecords, apiUrl }: TableBlockClientProps) {
   const router = useRouter();
 
-  const [data, setData] = useState<RecordData[]>(initialRecords);
+  // data is the main data that is displayed in the table. each data is an object with the keys of the columns
+  const [data, setData] = useState<RecordData[]>(() => {
+    return initialRecords.map(row => {
+      const newData = { ...row.data };
+      schema.columns?.forEach((col: ColumnDef) => {
+        if (newData[col.name] === undefined && col.defaultValue !== undefined && col.defaultValue !== null) {
+          let initialValue = col.defaultValue;
+          const typeUpper = col.type?.toUpperCase();
+          if (typeUpper === 'CURRENCY' || typeUpper === 'NUMBER') {
+            initialValue = parseFloat(initialValue);
+            if (isNaN(initialValue)) initialValue = null;
+          } else if (typeUpper === 'BOOLEAN') {
+            initialValue = initialValue === 'true' || initialValue === true ? true : false;
+          }
+          newData[col.name] = initialValue;
+        }
+      });
+      return { ...row, data: newData };
+    });
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   
@@ -98,12 +119,25 @@ export function TableBlockClient({ tableMetaId, orgId, orgIdentifier, schema, in
   const handleAddRow = () => {
     const defaultData: Record<string, any> = {};
     schema.columns?.forEach((col: ColumnDef) => {
-      if (col.type?.toUpperCase() === 'NUMBER') {
-        defaultData[col.name] = col.defaultValue !== undefined && col.defaultValue !== null && col.defaultValue !== "" ? Number(col.defaultValue) : 0;
-      } else if (col.type?.toUpperCase() === 'BOOLEAN') {
-        defaultData[col.name] = col.defaultValue === 'true' || col.defaultValue === true ? true : false;
+      const typeUpper = col.type?.toUpperCase();
+      let initialValue = col.defaultValue;
+
+      if (initialValue !== undefined && initialValue !== null && initialValue !== "") {
+        if (typeUpper === 'CURRENCY' || typeUpper === 'NUMBER') {
+          initialValue = parseFloat(initialValue);
+          if (isNaN(initialValue)) initialValue = null;
+        } else if (typeUpper === 'BOOLEAN') {
+          initialValue = initialValue === 'true' || initialValue === true;
+        }
+        defaultData[col.name] = initialValue;
       } else {
-        defaultData[col.name] = col.defaultValue !== undefined && col.defaultValue !== null ? col.defaultValue : "";
+        if (typeUpper === 'NUMBER' || typeUpper === 'CURRENCY') {
+          defaultData[col.name] = 0;
+        } else if (typeUpper === 'BOOLEAN') {
+          defaultData[col.name] = false;
+        } else {
+          defaultData[col.name] = "";
+        }
       }
     });
     const newRow = { id: generateTempId(), data: defaultData };
@@ -458,46 +492,35 @@ export function TableBlockClient({ tableMetaId, orgId, orgIdentifier, schema, in
                       onCheckedChange={(checked) => toggleSelectRow(row.id, !!checked)}
                     />
                   </td>
-                  {filteredColumns.map((col: ColumnDef, cIdx: number) => (
-                    <td key={cIdx} className="border-b border-l border-slate-200 p-0 relative">
-                      {col.type?.toUpperCase() === 'BOOLEAN' ? (
-                        <div className="flex items-center justify-center w-full h-full p-2">
-                          <Checkbox 
-                            checked={!!row.data[col.name]}
-                            onCheckedChange={(c) => handleCellChange(row.id, col.name, !!c)}
-                          />
-                        </div>
-                      ) : col.type?.toUpperCase() === 'GOOGLE_DRIVE_FILE' ? (
-                        <DrivePickerCell
-                          value={row.data[col.name] || null}
-                          onChange={(fileVal) => handleCellChange(row.id, col.name, fileVal as any)}
-                          orgId={orgIdentifier}
-                          tableName={schema.name || "Unknown_Table"}
-                          onMarkForDeletion={(fileId) => setPendingDeletions(prev => [...prev, fileId])}
+                  {filteredColumns.map((col: ColumnDef, cIdx: number) => {
+                    const colType = col.type?.toUpperCase() || 'DEFAULT';
+                    const InputComponent = FORM_INPUTS[colType] || FORM_INPUTS.DEFAULT;
+                    let value = row.data[col.name];
+                    if (value === undefined && col.defaultValue !== undefined) {
+                      value = (colType === 'CURRENCY' || colType === 'NUMBER') ? parseFloat(col.defaultValue) : col.defaultValue;
+                      if (colType === 'CURRENCY' || colType === 'NUMBER') {
+                        if (isNaN(value)) value = null;
+                      }
+                    }
+                    if (value === undefined) value = null;
+                    
+                    return (
+                      <td key={cIdx} className="border-b border-l border-slate-200 p-0 relative">
+                        <InputComponent
+                          value={value}
+                          column={col}
+                          rowId={row.id}
+                          onChange={(v) => handleCellChange(row.id, col.name, v)}
+                          context={{
+                            orgIdentifier,
+                            tableName: schema.name || "Unknown_Table",
+                            onMarkForDeletion: (fileId: string) => setPendingDeletions(prev => [...prev, fileId]),
+                            relationOptions
+                          }}
                         />
-                      ) : col.type?.toUpperCase() === 'RELATION' ? (
-                        <select
-                          className="w-full h-8 px-2 bg-transparent focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm"
-                          value={row.data[col.name] !== undefined && row.data[col.name] !== null ? String(row.data[col.name]) : ""}
-                          onChange={(e) => handleCellChange(row.id, col.name, e.target.value)}
-                        >
-                          <option value="">בחר...</option>
-                          {relationOptions[col.name]?.map((opt: any) => (
-                            <option key={opt.id} value={opt.id}>
-                              {col.displayField && opt.data[col.displayField] ? opt.data[col.displayField] : opt.id}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={col.type?.toUpperCase() === 'NUMBER' ? 'number' : 'text'}
-                          className="w-full h-8 px-2 bg-transparent focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm"
-                          value={row.data[col.name] !== undefined ? String(row.data[col.name]) : (col.defaultValue !== undefined && col.defaultValue !== null ? String(col.defaultValue) : "")}
-                          onChange={(e) => handleCellChange(row.id, col.name, e.target.value)}
-                        />
-                      )}
-                    </td>
-                  ))}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}
