@@ -28,6 +28,27 @@ function getCurrencySymbol(code?: string) {
   if (!code) return '';
   return CURRENCY_SYMBOLS[code.toUpperCase()] || code;
 }
+// display the selected value in the relation field and if there no value in the field display the id 
+function getRelationDisplayLabel(opt: any, column: ColumnDef) {
+  if (!opt) return "רשומה חסרה";
+  
+  const val = column.displayField && opt.data ? opt.data[column.displayField] : undefined;
+  if (val !== undefined && val !== null && val !== '') {
+    return String(val);
+  }
+  
+  if (opt.data) {
+    const fallbackField = Object.keys(opt.data).find(k => {
+      if (k === '_id' || k === 'id') return false;
+      const v = opt.data[k];
+      if (typeof v === 'string' && v.trim() !== '') return true;
+      if (typeof v === 'number') return true;
+      return false;
+    });
+    if (fallbackField) return String(opt.data[fallbackField]);
+  }
+  return "ערך ריק";
+}
 
 //cell renderers are the renderers for the cells in the table 
 export const CELL_RENDERERS: Record<string, React.FC<CellProps>> = {
@@ -67,7 +88,7 @@ export const CELL_RENDERERS: Record<string, React.FC<CellProps>> = {
   RELATION: ({ value, column, context }) => {
     const options = context?.relationOptions?.[column.name] || [];
     const opt = options.find((o: any) => o.id === value);
-    const displayVal = opt ? (column.displayField && opt.data[column.displayField] ? opt.data[column.displayField] : opt.id) : value;
+    const displayVal = opt ? getRelationDisplayLabel(opt, column) : (value ? "רשומה לא זמינה" : "");
     return <span className="px-2 py-1 flex items-center h-full">{displayVal}</span>;
   },
   NUMBER: ({ value }) => (
@@ -179,20 +200,55 @@ export const FORM_INPUTS: Record<string, React.FC<InputProps>> = {
       onMarkForDeletion={context?.onMarkForDeletion}
     />
   ),
-  RELATION: ({ value, onChange, column, context }) => (
-    <select
-      className="w-full h-8 px-2 bg-transparent focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm"
-      value={value !== undefined && value !== null ? String(value) : ""}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">בחר...</option>
-      {context?.relationOptions?.[column.name]?.map((opt: any) => (
-        <option key={opt.id} value={opt.id}>
-          {column.displayField && opt.data[column.displayField] ? opt.data[column.displayField] : opt.id}
-        </option>
-      ))}
-    </select>
-  ),
+  RELATION: ({ value, onChange, column, context }) => {
+    const options = context?.relationOptions?.[column.name] || [];
+    
+    React.useEffect(() => {
+      if (typeof value === 'string' && value !== '' && options.length > 0) {
+        const isValidId = options.some((o: any) => String(o.id) === String(value));
+        if (!isValidId) {
+          const match = options.find((o: any) => 
+            String(getRelationDisplayLabel(o, column)).trim() === String(value).trim()
+          );
+          if (match) {
+            onChange(match.id); // Valid match found, inject ID
+          } else {
+            onChange(''); // Fallback: Invalid default string, clear it
+          }
+        }
+      }
+    }, [value, options, column, onChange]);
+
+    const processedOptions = options.map((opt: any) => ({
+      ...opt,
+      _displayLabel: getRelationDisplayLabel(opt, column)
+    }));
+    const validOptions = processedOptions.filter((o: any) => o._displayLabel !== "הערך שברשומה המקושרת נשאר ריק");
+
+    return (
+      <select
+        className="w-full h-8 px-2 bg-transparent focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-400 text-sm"
+        value={value !== undefined && value !== null ? String(value) : ""}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => {
+          if (context?.refetchRelation) {
+            context.refetchRelation(column.name);
+          }
+        }}
+      >
+        <option value="">בחר...</option>
+        {validOptions.length > 0 ? (
+          validOptions.map((opt: any) => (
+            <option key={opt.id} value={opt.id}>
+              {opt._displayLabel}
+            </option>
+          ))
+        ) : options.length > 0 ? (
+          <option value="empty_all" disabled>כל הערכים בטבלה המקושרת ריקים</option>
+        ) : null}
+      </select>
+    );
+  },
   NUMBER: ({ value, onChange }) => (
     <input
       type="number"

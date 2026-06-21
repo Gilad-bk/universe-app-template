@@ -1,5 +1,6 @@
 import React from 'react';
 import { TableBlockClient } from './TableBlockClient';
+import { TableBlockError } from './TableBlockError';
 
 interface TableBlockProps {
   tableMetaId: string;
@@ -15,7 +16,9 @@ export async function TableBlock({ tableMetaId, orgId, orgIdentifier }: TableBlo
       next: { revalidate: 0 }, // no cache for live data
     });
 
-    if (!res.ok) throw new Error("Failed to fetch table data");
+    if (!res.ok) {
+      return <TableBlockError message={res.status === 404 ? "Table not found (404)" : `Failed to fetch table data (${res.status})`} />;
+    }
     const { schema, records } = await res.json();
 
     if (!schema?.columns || !records?.data) {
@@ -34,10 +37,6 @@ export async function TableBlock({ tableMetaId, orgId, orgIdentifier }: TableBlo
       />
     );
   } catch (err: unknown) {
-    return (
-      <div className="p-4 my-4 border border-red-200 bg-red-50 text-red-800 rounded">
-        Failed to load table: {err instanceof Error ? err.message : "Unknown error"}
-      </div>
-    );
+    return <TableBlockError message={err instanceof Error ? err.message : "Unknown error"} />;
   }
 }
