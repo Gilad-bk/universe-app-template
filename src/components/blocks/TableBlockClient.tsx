@@ -77,6 +77,28 @@ export function TableBlockClient({ tableMetaId, orgId, orgIdentifier, schema, in
 
   const schemaColsString = useMemo(() => JSON.stringify(schema?.columns || []), [schema?.columns]);
 
+  // refetch relation options when the schema changes
+  const refetchRelation = async (colName: string) => {
+    let parsedCols: ColumnDef[] = [];
+    try { parsedCols = JSON.parse(schemaColsString); } catch(e) {}
+    const col = parsedCols.find((c: ColumnDef) => c.name === colName);
+    if (!col || col.type?.toUpperCase() !== 'RELATION' || !col.referencedTableId) return;
+
+    const baseApiUrl = apiUrl || process.env.NEXT_PUBLIC_UNIVERSE_API_URL || "";
+    try {
+      const res = await fetch(`${baseApiUrl}/api/tables/${col.referencedTableId}?limit=1000`, {
+        headers: { 'x-org-id': orgId, 'ngrok-skip-browser-warning': '69420' }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.records?.data) {
+        setRelationOptions(prev => ({ ...prev, [colName]: json.records.data }));
+      }
+    } catch (err: unknown) {
+      toast.error(`שגיאה בטעינת אפשרויות לעמודה ${colName}`);
+    }
+  };
+
   useEffect(() => {
     let parsedCols: ColumnDef[] = [];
     try { parsedCols = JSON.parse(schemaColsString); } catch(e) {}
@@ -84,27 +106,7 @@ export function TableBlockClient({ tableMetaId, orgId, orgIdentifier, schema, in
     const relationCols = parsedCols.filter((c: ColumnDef) => c.type?.toUpperCase() === 'RELATION') || [];
     
     relationCols.forEach((col: ColumnDef) => {
-      const refTableId = col.referencedTableId;
-      if (!refTableId) return;
-      
-      const baseApiUrl = apiUrl || process.env.NEXT_PUBLIC_UNIVERSE_API_URL || "";
-      
-      const fetchRelation = async () => {
-        try {
-          const res = await fetch(`${baseApiUrl}/api/tables/${refTableId}?limit=1000`, {
-            headers: { 'x-org-id': orgId, 'ngrok-skip-browser-warning': '69420' }
-          });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const json = await res.json();
-          if (json.records?.data) {
-            setRelationOptions(prev => ({ ...prev, [col.name]: json.records.data }));
-          }
-        } catch (err: unknown) {
-          toast.error(`שגיאה בטעינת אפשרויות לעמודה ${col.name}`);
-        }
-      };
-      
-      fetchRelation();
+      refetchRelation(col.name);
     });
   }, [schemaColsString, apiUrl, orgId]);
 
@@ -515,7 +517,8 @@ export function TableBlockClient({ tableMetaId, orgId, orgIdentifier, schema, in
                             orgIdentifier,
                             tableName: schema.name || "Unknown_Table",
                             onMarkForDeletion: (fileId: string) => setPendingDeletions(prev => [...prev, fileId]),
-                            relationOptions
+                            relationOptions,
+                            refetchRelation
                           }}
                         />
                       </td>
