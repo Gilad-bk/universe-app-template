@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { getAppData } from "@/lib/api";
-import { TableBlock } from "@/components/blocks/TableBlock";
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -33,16 +32,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       <h1 className="text-3xl font-bold mb-6 text-right">{page.pageTitle}</h1>
       <div className="flex flex-col gap-6">
         {page.components?.map((component) => {
-          if (component.type === 'TABLE') {
-            return (
-              <TableBlock 
-                key={component.id} 
-                tableMetaId={component.config.tableMetaId} 
-                orgId={appData?.organizationId || ''}
-                orgIdentifier={appData?.organization?.orgIdentifier || ''}
-              />
-            );
-          }
+          // Dynamic component rendering 
           return null;
         })}
       </div>
