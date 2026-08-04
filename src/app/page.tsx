@@ -1,10 +1,10 @@
-import { isUiLibraryReady, isUiLibraryReadyNot } from "@universe-platform/ui";
+"use client";
 
+import { UNIVERSE_COMPONENTS } from "@universe-platform/ui";
 
-export default async function OrganizationWorkspacePage() {
+export default function OrganizationWorkspacePage() {
   // Temporary integration check for UI library resolution
-  console.log("UI Library Ready State:", isUiLibraryReady);
-  console.log("UI Library Ready State Not:", isUiLibraryReadyNot);
+  console.log("UI Library Component Registry:", Object.keys(UNIVERSE_COMPONENTS));
 
   return (
     <div className="p-6 flex-1 text-right text-slate-800">

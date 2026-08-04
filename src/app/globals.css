@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@universe-platform/ui/globals.css";
 
 @theme {
   --color-brand: #00b7a2;
@@ -9,18 +10,11 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171d26;
+  --foreground: #0f172a;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #171d26;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html, body {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  min-height: 100vh;
 }
