@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { getAppData } from "@/lib/api";
+import { DynamicComponentRenderer } from "@/components/DynamicComponentRenderer";
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -28,14 +29,14 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   }
 
   return (
-    <div className="w-full text-right" dir="rtl">
+    <div className="w-full text-right p-6" dir="rtl">
       <h1 className="text-3xl font-bold mb-6 text-right">{page.pageTitle}</h1>
-      <div className="flex flex-col gap-6">
-        {page.components?.map((component) => {
-          // Dynamic component rendering 
-          return null;
-        })}
-      </div>
+      <DynamicComponentRenderer
+        components={page.components}
+        orgId={appData.organizationId || ""}
+      />
     </div>
   );
 }
+
+
