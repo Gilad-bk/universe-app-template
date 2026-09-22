@@ -1,31 +1,23 @@
-/**
- * UNIVERSE CORE API CLIENT
- * Handles dynamic action execution and central backend communication.
- */
+// UNIVERSE CORE API CLIENT
+// Handles dynamic action execution and central backend communication
 
 export interface ActionContext {
   orgId?: string;
   componentId?: string;
 }
 
-/**
- * Unified action execution engine for UI components.
- * Sends HTTP POST requests to the backend action controller.
- * 
- * @param actionType - The identifier of the action (e.g., 'CREATE_RECORD', 'DELETE_RECORD', 'FETCH_RELATION')
- * @param payload - Data payload associated with the action
- * @param context - Optional context including orgId and componentId
- * @returns Parsed response data from the backend action endpoint
- */
+// Unified action execution engine for UI components
+// Sends HTTP POST requests to backend action controller
 export async function executeAction(
   actionType: string,
   payload: Record<string, any>,
-  context?: ActionContext
+  context?: ActionContext,
+  token?: string
 ): Promise<any> {
   const baseUrl =
     process.env.NEXT_PUBLIC_UNIVERSE_API_URL ||
     process.env.UNIVERSE_API_URL ||
-    "";
+    (typeof window === "undefined" ? "http://localhost:3000" : "");
 
   const url = baseUrl ? `${baseUrl}/api/engine/execute-action` : "/api/engine/execute-action";
 
@@ -33,8 +25,15 @@ export async function executeAction(
     "Content-Type": "application/json",
   };
 
-  if (context?.orgId) {
-    headers["x-org-id"] = context.orgId;
+  // Provide organization context from caller context or environment fallback
+  const orgId = context?.orgId || process.env.NEXT_PUBLIC_UNIVERSE_ORG_ID;
+  if (orgId) {
+    headers["x-org-id"] = orgId;
+  }
+
+  // Attach bearer token if caller provided an authenticated session token
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   try {
@@ -45,11 +44,16 @@ export async function executeAction(
         actionType,
         payload,
         componentId: context?.componentId,
-        orgId: context?.orgId,
+        orgId,
       }),
     });
 
     if (!response.ok) {
+      // Throw standardized Access Denied error for non-member or unauthenticated calls
+      if (response.status === 401 || response.status === 403) {
+        throw new Error("Access Denied");
+      }
+
       let errorMessage = `Action execution failed (${response.status})`;
       try {
         const errData = await response.json();
