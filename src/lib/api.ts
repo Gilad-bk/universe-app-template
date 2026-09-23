@@ -11,9 +11,9 @@ export async function getAppData(host: string): Promise<App | null> {
   const targetHost = process.env.NEXT_PUBLIC_DEV_HOST || host;
 
   try {
-    // makes the api request with the target host- changed to 0 to prevent caching
+    // makes the api request with the target host - strictly bypass cache
     const res = await fetch(`${apiUrl}/api/app?host=${targetHost}`, {
-      next: { revalidate: 0 },
+      cache: "no-store",
     });
 
     if (!res.ok) return null;

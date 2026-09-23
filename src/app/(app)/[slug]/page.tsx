@@ -3,13 +3,16 @@ import { headers } from "next/headers";
 import { getAppData } from "@/lib/api";
 import { DynamicComponentRenderer } from "@/components/DynamicComponentRenderer";
 
+// Force dynamic execution per request to prevent serving cached data to unauthorized users
+export const dynamic = "force-dynamic";
+
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   const headersList = await headers();
   const host = headersList.get("host") ?? "";
 
-  // Next.js memoizes identical fetch calls within the same render pass.
+  // Next.js memoizes identical fetch calls within the same render pass
   const appData = await getAppData(host);
 
   if (!appData) {
@@ -38,5 +41,3 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     </div>
   );
 }
-
-

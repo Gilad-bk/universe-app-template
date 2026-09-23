@@ -13,6 +13,12 @@ export interface Page {
 export interface Organization {
   name: string;
   orgIdentifier: string;
+  role?: string;
+}
+
+export interface User {
+  id: string;
+  systemRole?: string;
 }
 
 export interface App {
@@ -20,4 +26,5 @@ export interface App {
   organizationId: string;
   organization: Organization;
   pages: Page[];
+  user?: User;
 }
