@@ -14,10 +14,11 @@ export async function executeAction(
   context?: ActionContext,
   token?: string
 ): Promise<any> {
-  const baseUrl =
+  const baseUrl = (
     process.env.NEXT_PUBLIC_UNIVERSE_API_URL ||
     process.env.UNIVERSE_API_URL ||
-    (typeof window === "undefined" ? "http://localhost:3000" : "");
+    (typeof window === "undefined" ? "http://localhost:3000" : "")
+  ).trim();
 
   const url = baseUrl ? `${baseUrl}/api/engine/execute-action` : "/api/engine/execute-action";
 
@@ -26,7 +27,7 @@ export async function executeAction(
   };
 
   // Provide organization context from caller context or environment fallback
-  const orgId = context?.orgId || process.env.NEXT_PUBLIC_UNIVERSE_ORG_ID;
+  const orgId = context?.orgId || process.env.NEXT_PUBLIC_UNIVERSE_ORG_ID?.trim();
   if (orgId) {
     headers["x-org-id"] = orgId;
   }

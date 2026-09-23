@@ -4,13 +4,13 @@ import { NextResponse } from "next/server";
 // Standard HTTP POST endpoint for processing UI component action requests
 export async function POST(request: Request) {
   try {
-    const orgId = request.headers.get("x-org-id") || process.env.NEXT_PUBLIC_UNIVERSE_ORG_ID;
+    const orgId = request.headers.get("x-org-id") || process.env.NEXT_PUBLIC_UNIVERSE_ORG_ID?.trim();
     const authHeader = request.headers.get("authorization");
     const body = await request.json().catch(() => ({}));
     const { actionType, payload, componentId, orgId: bodyOrgId } = body;
 
     const targetOrgId = orgId || bodyOrgId;
-    const centralApiUrl = process.env.UNIVERSE_API_URL || process.env.NEXT_PUBLIC_UNIVERSE_API_URL || "http://localhost:3000";
+    const centralApiUrl = (process.env.UNIVERSE_API_URL || process.env.NEXT_PUBLIC_UNIVERSE_API_URL || "http://localhost:3000").trim();
 
     // Forward auth and org headers to central API endpoint
     const headers: Record<string, string> = {
