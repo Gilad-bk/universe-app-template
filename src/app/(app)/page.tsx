@@ -15,7 +15,7 @@ export default async function OrganizationWorkspacePage() {
     const sortedPages = [...appData.pages].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const firstPage = sortedPages[0];
     if (firstPage && firstPage.slug) {
-      redirect(`/${firstPage.slug}`);
+      redirect(encodeURI(`/${firstPage.slug}`));
     }
   }
 
