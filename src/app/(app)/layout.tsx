@@ -33,7 +33,7 @@ export default async function AppLayout({
     try {
       token = (await getToken()) || undefined;
       orgId = appData.organizationId || appData.organization?.orgIdentifier;
-      const membershipRes = await executeAction("CHECK_MEMBERSHIP", {}, { orgId }, token);
+      const membershipRes = await executeAction("CHECK_MEMBERSHIP", {}, { orgId, appId: appData.id }, token);
       
       // executeAction might unwrap `.data` automatically, so we check both structures
       const roleData = membershipRes?.data || membershipRes;
