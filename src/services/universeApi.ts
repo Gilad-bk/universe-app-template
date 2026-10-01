@@ -4,6 +4,7 @@
 export interface ActionContext {
   orgId?: string;
   componentId?: string;
+  appId?: string;
 }
 
 // Unified action execution engine for UI components

@@ -2,6 +2,7 @@ import path from "path";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ["@universe-platform/ui"],
   turbopack: {
     root: path.join(__dirname, ".."),
   },

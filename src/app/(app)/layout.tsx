@@ -28,10 +28,12 @@ export default async function AppLayout({
   if (!userId) {
     redirect("/system_signin");
   } else {
+    let token: string | undefined;
+    let orgId: string | undefined;
     try {
-      const token = (await getToken()) || undefined;
-      const orgId = appData.organizationId || appData.organization?.orgIdentifier;
-      const membershipRes = await executeAction("CHECK_MEMBERSHIP", {}, { orgId }, token);
+      token = (await getToken()) || undefined;
+      orgId = appData.organizationId || appData.organization?.orgIdentifier;
+      const membershipRes = await executeAction("CHECK_MEMBERSHIP", {}, { orgId, appId: appData.id }, token);
       
       // executeAction might unwrap `.data` automatically, so we check both structures
       const roleData = membershipRes?.data || membershipRes;
@@ -45,10 +47,21 @@ export default async function AppLayout({
       }
       
       initialIsMember = true;
-    } catch {
-      // Mark as unauthorized if verification fails
-      initialIsMember = false;
-      redirect("/system_notauthorize");
+    } catch (err: any) {
+      console.error("[AppLayout Auth Check Failed]:", {
+        userId,
+        hasToken: !!token,
+        orgId,
+        error: err
+      });
+
+      if (appData.user?.systemRole === "PLATFORM_ADMIN") {
+        initialIsMember = true;
+      } else {
+        // Mark as unauthorized if verification fails
+        initialIsMember = false;
+        redirect("/system_notauthorize");
+      }
     }
   }
 

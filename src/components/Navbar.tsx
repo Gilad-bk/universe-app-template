@@ -1,13 +1,20 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { App } from "@/lib/types";
 import { UserNavButton } from "@/components/UserNavButton";
 
-function OrgNavLink({ title, href }: { title: string; href: string }) {
+function OrgNavLink({ title, href, isActive }: { title: string; href: string; isActive: boolean }) {
   return (
     <li>
       <Link
         href={href}
-        className="px-4 py-2 rounded-md text-slate-200 hover:text-white hover:bg-white/10 transition-colors text-sm font-medium inline-block"
+        className={`px-3.5 py-1.5 rounded-lg transition-all text-sm font-medium inline-block ${
+          isActive
+            ? "bg-teal-500/15 text-teal-300 border border-teal-500/30 shadow-2xs"
+            : "text-slate-300 hover:text-white hover:bg-white/5 border border-transparent"
+        }`}
       >
         {title}
       </Link>
@@ -16,6 +23,7 @@ function OrgNavLink({ title, href }: { title: string; href: string }) {
 }
 
 export function Navbar({ appData }: { appData: App }) {
+  const pathname = usePathname();
   const sortedPages = [...appData.pages].sort((a, b) => a.order - b.order);
   const initial = appData.organization?.name ? appData.organization.name[0].toUpperCase() : "U";
 
@@ -30,9 +38,24 @@ export function Navbar({ appData }: { appData: App }) {
         </div>
         <nav>
           <ul className="flex items-center gap-1">
-            {sortedPages.map((page) => (
-              <OrgNavLink key={page.id} title={page.pageName} href={`/${page.slug}`} />
-            ))}
+            {sortedPages.map((page) => {
+              const targetHref = `/${page.slug}`;
+              const decodedPathname = pathname ? decodeURIComponent(pathname) : "";
+              const isActive =
+                decodedPathname === targetHref ||
+                decodedPathname === `/${page.slug}` ||
+                pathname === targetHref ||
+                pathname === encodeURI(targetHref);
+
+              return (
+                <OrgNavLink
+                  key={page.id}
+                  title={page.pageName}
+                  href={targetHref}
+                  isActive={isActive}
+                />
+              );
+            })}
           </ul>
         </nav>
       </div>

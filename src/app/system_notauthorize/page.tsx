@@ -1,6 +1,6 @@
 import { getAppData } from "@/lib/api";
 import { headers } from "next/headers";
-import { SignOutButton } from "@clerk/nextjs";
+import { SignOutButtonClient } from "@/components/SignOutButtonClient";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +19,7 @@ export default async function SystemNotAuthorizePage() {
         <p className="text-slate-400 text-sm mb-6 leading-relaxed">
           אין לך הרשאות לצפות באפליקציה זו. פנה למנהל המערכת על מנת לקבל גישה לארגון {appData?.organization?.name || ""}.
         </p>
-        <SignOutButton redirectUrl="/system_signin">
-          <button className="w-full py-3 px-6 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition-colors text-sm flex items-center justify-center gap-2 cursor-pointer">
-            התנתק מהחשבון
-          </button>
-        </SignOutButton>
+        <SignOutButtonClient />
       </div>
     </div>
   );

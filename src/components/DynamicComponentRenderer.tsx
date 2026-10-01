@@ -61,6 +61,7 @@ export interface ComponentConfigData {
 export interface DynamicComponentRendererProps {
   components?: ComponentConfigData[];
   orgId: string;
+  appId?: string;
   defaultPermissions?: ComponentPermissions;
   initialPageState?: Record<string, any>;
   onEmitEvent?: (eventName: string, payload: any) => void;
@@ -75,6 +76,7 @@ export interface DynamicComponentRendererProps {
 export function DynamicComponentRenderer({
   components = [],
   orgId,
+  appId,
   defaultPermissions = DEFAULT_PERMISSIONS,
   initialPageState = {},
   onEmitEvent,
@@ -116,6 +118,7 @@ export function DynamicComponentRenderer({
           payload,
           {
             orgId,
+            appId,
             componentId,
           },
           token
