@@ -38,6 +38,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         components={page.components}
         orgId={appData.organizationId || ""}
         appId={appData.id || ""}
+        currentUserRole={appData.currentUserRole || appData.organization?.role}
       />
     </div>
   );

@@ -70,6 +70,8 @@ export interface DynamicComponentRendererProps {
     payload: Record<string, any>
   ) => Promise<any>;
   className?: string;
+  currentUserRole?: string | null;
+  dashboardUrl?: string;
 }
 
 // Generic component renderer that dynamically resolves UI components using the UI library registry
@@ -82,11 +84,25 @@ export function DynamicComponentRenderer({
   onEmitEvent,
   customExecuteAction,
   className = "flex flex-col gap-6",
+  currentUserRole,
+  dashboardUrl,
 }: DynamicComponentRendererProps) {
   const [pageState, setPageState] = useState<Record<string, any>>(initialPageState);
   const [componentErrors, setComponentErrors] = useState<Record<string, string>>({});
   const { getToken, isSignedIn } = useAuth();
-  const { canMutate } = usePermissions();
+  const { canMutate, isOwner, isPlatformAdmin, orgRole } = usePermissions();
+
+  const effectiveIsOwner =
+    currentUserRole === "OWNER" ||
+    isOwner ||
+    isPlatformAdmin ||
+    orgRole === "OWNER";
+
+  const resolvedDashboardUrl =
+    dashboardUrl ||
+    process.env.NEXT_PUBLIC_DASHBOARD_URL ||
+    process.env.NEXT_PUBLIC_UNIVERSE_SERVER_URL ||
+    "http://localhost:3000";
 
   // Unified event emission handler for updating page state across components
   const handleEmitEvent = useCallback(
@@ -155,7 +171,6 @@ export function DynamicComponentRenderer({
   }
 
   return (
-    
     <div className={className}>
       {components.map((component) => {
         // Render graceful fallback UI if this specific block encountered a missing table error
@@ -182,7 +197,7 @@ export function DynamicComponentRenderer({
               className="p-4 border border-dashed border-red-300 bg-red-50 text-red-700 rounded-md dir-rtl"
               data-testid={`unsupported-component-${component.type}`}
             >
-              <strong>Render Error:</strong> Component type "{component.type}" is not supported in the installed UI library version.
+              <strong>Render Error:</strong> Component type "${component.type}" is not supported in the installed UI library version.
             </div>
           );
         }
@@ -200,7 +215,14 @@ export function DynamicComponentRenderer({
         const componentSettings = component.config || {};
         const componentError = component.error || componentSettings.error || component.data?.error || null;
 
-        const componentProps: BaseComponentProps = {
+        const isTable = component.type === "TABLE";
+        const tableMetaId = componentSettings.tableMetaId || componentSettings.tableId || componentSettings.id;
+        const editModelUrl =
+          effectiveIsOwner && isTable && tableMetaId
+            ? `${resolvedDashboardUrl}/organizations/${orgId}/edit-app?tab=models&modelId=${tableMetaId}`
+            : undefined;
+
+        const componentProps: BaseComponentProps & { editModelUrl?: string; role?: string } = {
           componentId: component.id,
           orgId,
           settings: componentSettings,
@@ -211,11 +233,13 @@ export function DynamicComponentRenderer({
           emitEvent: handleEmitEvent,
           executeAction: (actionType, payload) =>
             handleExecuteAction(component.id, actionType, payload),
+          editModelUrl,
+          role: effectiveIsOwner ? "OWNER" : (currentUserRole || orgRole || undefined),
         };
 
         return (
           <ComponentErrorBoundary key={component.id} componentId={component.id}>
-            <Component {...componentProps} />
+            <Component {...(componentProps as any)} />
           </ComponentErrorBoundary>
         );
       })}
