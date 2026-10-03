@@ -27,4 +27,5 @@ export interface App {
   organization: Organization;
   pages: Page[];
   user?: User;
+  currentUserRole?: 'OWNER' | 'VIEWER' | 'EDITOR' | string | null;
 }

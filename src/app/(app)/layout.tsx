@@ -44,6 +44,12 @@ export default async function AppLayout({
         
         if (!appData.user) appData.user = {} as any;
         appData.user!.systemRole = roleData.systemRole;
+
+        if (roleData.systemRole === "PLATFORM_ADMIN") {
+          appData.currentUserRole = "OWNER";
+        } else {
+          appData.currentUserRole = roleData.role;
+        }
       }
       
       initialIsMember = true;
@@ -57,6 +63,7 @@ export default async function AppLayout({
 
       if (appData.user?.systemRole === "PLATFORM_ADMIN") {
         initialIsMember = true;
+        appData.currentUserRole = "OWNER";
       } else {
         // Mark as unauthorized if verification fails
         initialIsMember = false;
