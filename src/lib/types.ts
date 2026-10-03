@@ -1,5 +1,7 @@
 // Shared data types mirroring the backend API response schema.
 
+export type OrgRole = 'OWNER' | 'EDITOR' | 'VIEWER';
+
 export interface Page {
   id: string;
   appId: string;
@@ -13,7 +15,7 @@ export interface Page {
 export interface Organization {
   name: string;
   orgIdentifier: string;
-  role?: string;
+  role?: OrgRole | null;
 }
 
 export interface User {
@@ -27,5 +29,5 @@ export interface App {
   organization: Organization;
   pages: Page[];
   user?: User;
-  currentUserRole?: 'OWNER' | 'VIEWER' | 'EDITOR' | string | null;
+  currentUserRole?: OrgRole | null;
 }

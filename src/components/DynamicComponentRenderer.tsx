@@ -9,7 +9,7 @@ import {
   ComponentPermissions,
 } from "@universe-platform/ui";
 import { executeAction as defaultExecuteAction } from "@/services/universeApi";
-import { usePermissions } from "@/components/PermissionsProvider";
+import { usePermissions, OrgRole } from "@/components/PermissionsProvider";
 
 const DEFAULT_PERMISSIONS: ComponentPermissions = {
   canCreate: true,
@@ -70,7 +70,7 @@ export interface DynamicComponentRendererProps {
     payload: Record<string, any>
   ) => Promise<any>;
   className?: string;
-  currentUserRole?: string | null;
+  currentUserRole?: OrgRole | null;
   dashboardUrl?: string;
 }
 
@@ -222,7 +222,7 @@ export function DynamicComponentRenderer({
             ? `${resolvedDashboardUrl}/organizations/${orgId}/edit-app?tab=models&modelId=${tableMetaId}`
             : undefined;
 
-        const componentProps: BaseComponentProps & { editModelUrl?: string; role?: string } = {
+        const componentProps: BaseComponentProps & { editModelUrl?: string; role?: OrgRole | null } = {
           componentId: component.id,
           orgId,
           settings: componentSettings,

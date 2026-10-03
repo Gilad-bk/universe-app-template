@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, ReactNode } from "react";
 
-export type OrgRole = "OWNER" | "EDITOR" | "VIEWER" | string;
+export type OrgRole = "OWNER" | "EDITOR" | "VIEWER";
 export type SystemRole = "PLATFORM_ADMIN" | "ORGANIZATION_ADMIN" | "END_USER" | string;
 
 export interface PermissionsContextType {
@@ -18,13 +18,13 @@ export interface PermissionsContextType {
 const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
 
 export interface PermissionsProviderProps {
-  role?: OrgRole;
+  role?: OrgRole | null;
   systemRole?: SystemRole;
   children: ReactNode;
 }
 
 export function PermissionsProvider({ role = "VIEWER", systemRole = "END_USER", children }: PermissionsProviderProps) {
-  const normalizedOrgRole = (role || "VIEWER").toUpperCase();
+  const normalizedOrgRole = ((role || "VIEWER").toUpperCase() as OrgRole);
   const normalizedSystemRole = (systemRole || "END_USER").toUpperCase();
   
   const isPlatformAdmin = normalizedSystemRole === "PLATFORM_ADMIN";
